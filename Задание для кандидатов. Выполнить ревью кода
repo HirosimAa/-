@@ -6,7 +6,7 @@ begin
 	declare @RowCount int = (select count(*) from syn.SA_CustomerSeasonal)
 	declare @ErrorMessage varchar(max)
 
--- РџСЂРѕРІРµСЂРєР° РЅР° РєРѕСЂСЂРµРєС‚РЅРѕСЃС‚СЊ Р·Р°РіСЂСѓР·РєРё
+-- Проверка на корректность загрузки
 	if not exists (
 	select 1
 	from syn.ImportFile as f
@@ -14,7 +14,7 @@ begin
 		and f.FlagLoaded = cast(1 as bit)
 	)
 		begin
-			set @ErrorMessage = 'РћС€РёР±РєР° РїСЂРё Р·Р°РіСЂСѓР·РєРµ С„Р°Р№Р»Р°, РїСЂРѕРІРµСЂСЊС‚Рµ РєРѕСЂСЂРµРєС‚РЅРѕСЃС‚СЊ РґР°РЅРЅС‹С…'
+			set @ErrorMessage = 'Ошибка при загрузке файла, проверьте корректность данных'
 
 			raiserror(@ErrorMessage, 3, 1)
 			return
@@ -25,7 +25,7 @@ begin
 		ID int
 	)
 	
-	--Р§С‚РµРЅРёРµ РёР· СЃР»РѕСЏ РІСЂРµРјРµРЅРЅС‹С… РґР°РЅРЅС‹С…
+	--Чтение из слоя временных данных
 	select
 		cc.ID as ID_dbo_Customer
 		,cst.ID as ID_CustomerSystemType
@@ -46,18 +46,18 @@ begin
 		and try_cast(cs.DateEnd as date) is not null
 		and try_cast(isnull(cs.FlagActive, 0) as bit) is not null
 
-	-- РћРїСЂРµРґРµР»СЏРµРј РЅРµРєРѕСЂСЂРµРєС‚РЅС‹Рµ Р·Р°РїРёСЃРё
-	-- Р”РѕР±Р°РІР»СЏРµРј РїСЂРёС‡РёРЅСѓ, РїРѕ РєРѕС‚РѕСЂРѕР№ Р·Р°РїРёСЃСЊ СЃС‡РёС‚Р°РµС‚СЃСЏ РЅРµРєРѕСЂСЂРµРєС‚РЅРѕР№
+	-- Определяем некорректные записи
+	-- Добавляем причину, по которой запись считается некорректной
 	select
 		cs.*
 		,case
-			when cc.ID is null then 'UID РєР»РёРµРЅС‚Р° РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ РІ СЃРїСЂР°РІРѕС‡РЅРёРєРµ "РљР»РёРµРЅС‚"'
-			when cd.ID is null then 'UID РґРёСЃС‚СЂРёР±СЊСЋС‚РѕСЂР° РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ РІ СЃРїСЂР°РІРѕС‡РЅРёРєРµ "РљР»РёРµРЅС‚"'
-			when s.ID is null then 'РЎРµР·РѕРЅ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ РІ СЃРїСЂР°РІРѕС‡РЅРёРєРµ "РЎРµР·РѕРЅ"'
-			when cst.ID is null then 'РўРёРї РєР»РёРµРЅС‚Р° РІ СЃРїСЂР°РІРѕС‡РЅРёРєРµ "РўРёРї РєР»РёРµРЅС‚Р°"'
-			when try_cast(cs.DateBegin as date) is null then 'РќРµРІРѕР·РјРѕР¶РЅРѕ РѕРїСЂРµРґРµР»РёС‚СЊ Р”Р°С‚Сѓ РЅР°С‡Р°Р»Р°'
-			when try_cast(cs.DateEnd as date) is null then 'РќРµРІРѕР·РјРѕР¶РЅРѕ РѕРїСЂРµРґРµР»РёС‚СЊ Р”Р°С‚Сѓ РЅР°С‡Р°Р»Р°'
-			when try_cast(isnull(cs.FlagActive, 0) as bit) is null then 'РќРµРІРѕР·РјРѕР¶РЅРѕ РѕРїСЂРµРґРµР»РёС‚СЊ РђРєС‚РёРІРЅРѕСЃС‚СЊ'
+			when cc.ID is null then 'UID клиента отсутствует в справочнике "Клиент"'
+			when cd.ID is null then 'UID дистрибьютора отсутствует в справочнике "Клиент"'
+			when s.ID is null then 'Сезон отсутствует в справочнике "Сезон"'
+			when cst.ID is null then 'Тип клиента в справочнике "Тип клиента"'
+			when try_cast(cs.DateBegin as date) is null then 'Невозможно определить Дату начала'
+			when try_cast(cs.DateEnd as date) is null then 'Невозможно определить Дату начала'
+			when try_cast(isnull(cs.FlagActive, 0) as bit) is null then 'Невозможно определить Активность'
 		end as Reason
 	into #BadInsertedRows
 	from syn.SA_CustomerSeasonal as cs

@@ -1,25 +1,35 @@
+-- Нарушение кодстайла 1. При наличии только одного параметра, этот параметр пишется на строке выполнения
 create procedure syn.usp_ImportFileCustomerSeasonal
 	@ID_Record int
 as
 set nocount on
 begin
 	declare @RowCount int = (select count(*) from syn.SA_CustomerSeasonal)
+	-- Нарушение кодстайла 2. Дополнительное объявление требуется если нужно использовать ранее объявленные переменные
 	declare @ErrorMessage varchar(max)
 
+	-- Нарушение кодстайла 3. Комментарий с таким же отступом как и код, к которому он относится
 -- Проверка на корректность загрузки
 	if not exists (
+	-- Нарушение кодстайла 4. В условных операторах весь блок смещается на 1 отступ
 	select 1
 	from syn.ImportFile as f
 	where f.ID = @ID_Record
+		-- Нарушение кодстайла 5. Сначала пишем ") and (" на одной строке с if, затем с новой строки дописываем атрибут на одном уровне с блоком 
 		and f.FlagLoaded = cast(1 as bit)
 	)
+		-- Нарушение кодстайла 6. begin на одном уровне с if
 		begin
 			set @ErrorMessage = 'Ошибка при загрузке файла, проверьте корректность данных'
 
+			-- Нарушение кодстайла 8. Новая строка не нужна
 			raiserror(@ErrorMessage, 3, 1)
+			-- Нарушение кодстайла 7. Пустая строка перед return
 			return
 		end
 
+	-- Нарушение кодстайла 9. Функция пишется со строчных букв
+	-- Нарушение кодстайла 10. '#' Быть не должно
 	CREATE TABLE #ProcessedRows (
 		ActionType varchar(255),
 		ID int
@@ -34,11 +44,15 @@ begin
 		,cast(cs.DateEnd as date) as DateEnd
 		,cd.ID as ID_dbo_CustomerDistributor
 		,cast(isnull(cs.FlagActive, 0) as bit) as FlagActive
+	-- Нарушение кодстайла 11. "#" Быть не должно
 	into #CustomerSeasonal
+	-- Нарушение кодстайла 12. Пропущено ключевое слово as
 	from syn.SA_CustomerSeasonal cs
+		-- Нарушение кодстайла 13. Некорректное наименование алиасов (вместо "сс" нужно назвать "с") 
 		join dbo.Customer as cc on cc.UID_DS = cs.UID_DS_Customer
 			and cc.ID_mapping_DataSource = 1
 		join dbo.Season as s on s.Name = cs.Season
+		-- Нарушение кодстайла 14. Повторяющийся код должен быть вынесен в отдельную структуру для повторного использования 
 		join dbo.Customer as cd on cd.UID_DS = cs.UID_DS_CustomerDistributor
 			and cd.ID_mapping_DataSource = 1
 		join syn.CustomerSystemType as cst on cs.CustomerSystemType = cst.Name
@@ -73,5 +87,5 @@ begin
 		or try_cast(cs.DateBegin as date) is null
 		or try_cast(cs.DateEnd as date) is null
 		or try_cast(isnull(cs.FlagActive, 0) as bit) is null
-		
+	-- Нарушение кодстайла 15. после блока пишется end выравненный на одну табуляцию от where	
 end
